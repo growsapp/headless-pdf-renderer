@@ -13,7 +13,7 @@ app.use(bodyParser.urlencoded({limit: '50mb', extended: true, parameterLimit:500
 
 app.post('/render', async (req, res) => {
   res.setHeader('Content-type', 'application/pdf')
-  res.send(await renderPDF(req.body.html))
+  res.send(await renderPDF(req.body.html, req.body.options || null))
 })
 
 app.listen(8082, () => {
@@ -24,7 +24,7 @@ process.on('SIGINT', function () {
   process.exit()
 })
 
-async function renderPDF(html) {
+async function renderPDF(html, options) {
   const browser = await puppeteer.launch({
     headless: true,
     executablePath: 'google-chrome-stable',
@@ -32,9 +32,7 @@ async function renderPDF(html) {
       '--disable-dev-shm-usage',
     ]
   })
-  const page = await browser.newPage()
-  await page.setContent(html, {waitUntil: 'networkidle0'})
-  const pdf = await page.pdf({
+  options = options || {
     printBackground: true,
     format: 'A4',
     preferCSSPageSize: true,
@@ -44,7 +42,11 @@ async function renderPDF(html) {
       right: 0,
       bottom: 0,
     },
-  })
+  };
+
+  const page = await browser.newPage()
+  await page.setContent(html, {waitUntil: 'networkidle0'})
+  const pdf = await page.pdf(options)
 
   await browser.close()
 
